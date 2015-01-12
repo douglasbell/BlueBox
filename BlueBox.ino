@@ -1,9 +1,14 @@
+/** 
+ * BlueBox implementation using a 4x4 keypad 
+ * 
+ * Author Doug Bell (douglas.bell@gmail.com)
+ */
 //#include <Tone.h>
 #include <Keypad.h>
 
 #define TONE_PIN   12
 
-// Define the keymap for our 4x4 keypad
+// Define the keymap for a 4x4 keypad
 const char keys[4][4] = {
   {'1','2','3','a'},
   {'4','5','6','b'},
@@ -11,10 +16,10 @@ const char keys[4][4] = {
   {'#','0','*','d'}
 };
 
-// Connect to the row pinouts of the keypad
+// Row pinouts of the keypad
 byte rowPins[4] = {5,4,3,2}; 
 
-// Connect to the column pinouts of the keypad
+// Column pinouts of the keypad
 byte colPins[4] = {9,8,7,6}; 
 
 // Initialize the keypad
@@ -42,7 +47,6 @@ int dtmf[16][2] = {
  * Setup the program 
  */
 void setup() {
-  //freq.begin(TONE_PIN);
   Serial.begin(9600);
 }
 
@@ -50,8 +54,8 @@ void setup() {
  * The program loop
  */
 void loop() {
-  char button = keypad.getKey(); // check for button press
- 
+  // check for a button press on the keypad
+  char button = keypad.getKey(); 
   if (button != NULL) {
     Serial.print("Button: ");
     Serial.println(button);
@@ -61,9 +65,5 @@ void loop() {
     } else if (isdigit(button) || button == '#' || button == '*') {
       tone(12, dtmfFreq[dtmf[button][0]], 500);
     } 
-    //tone(13, 2600, 500);
-   // delay(500);
-   // noTone(13);
   }
- 
 }
