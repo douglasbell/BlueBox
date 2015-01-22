@@ -1,6 +1,16 @@
 #include <Keypad.h>
 #include <Tone.h>
 
+/** 
+ * A blue box is an electronic device that generates the same tones 
+ * employed by a telephone operator's dialing console to switch long-distance 
+ * calls. The blue box allowed users to route their own calls by emulating 
+ * the in-band signaling mechanism that then controlled switching in long 
+ * distance dialing systems. The most typical use of a blue box was to place 
+ * free telephone calls.  
+ *
+ */
+ 
 // MF 0,1,2,3,4,5,6,7,8,9,kp,st,2400+2600,kp2,st2,ss4 super
 int bb[16][2] = { 
   {1300,1500},{700,900},{700,1100},      // 0,1,2
@@ -8,7 +18,7 @@ int bb[16][2] = {
   {1100,1300},{700,1500},{900,1500},     // 6,7,8
   {1100,1500},{1100,1700},{1500,1700},   // 9,kp,st
   {2600,2400},{1300,1700},{900,1700},    // 2400+2600,kp2,st2
-  {2400,2040},                           // ss4 Supervisory
+  {2400,2040}                            // ss4 Supervisory
 };
 
 // DTMF Frequencies in Hz
