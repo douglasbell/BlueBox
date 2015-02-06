@@ -1,5 +1,7 @@
+#include <Wire.h>
 #include <Keypad.h>
 #include <Tone.h>
+#include <SoftwareSerial.h>
 
 /** 
  * A blue box is an electronic device that generates the same tones 
@@ -9,8 +11,22 @@
  * distance dialing systems. The most typical use of a blue box was to place 
  * free telephone calls.  
  *
+ * Extrapolated from: Unattributed 
+ *
+ * Author: Doug Bell (douglas.bell@gmail.com)
+ *
+ * 3rd Party Libaries
+ *
+ * http://playground.arduino.cc/Code/QueueList
+ * https://github.com/ivanseidel/ArduinoThread
+ * http://playground.arduino.cc/Code/LCDi2c
+ *
+ *
  */
  
+// Attach the serial display's RX line to digital pin 12
+SoftwareSerial lcd(3,13); // pin 3 = RX (unused), pin 13 = TX
+
 // MF 0,1,2,3,4,5,6,7,8,9,kp,st,2400+2600,kp2,st2,ss4 super
 int bb[16][2] = { 
   {1300,1500},{700,900},{700,1100},      // 0,1,2
@@ -95,10 +111,23 @@ int mf2 = 0;
 // int store
 int store[24] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
+// count of button presses for lcd display
+int presses = 0; 
+
 /**
  * Program setup 
  */
 void setup(void){ 
+  
+  // Set up LCD
+  lcd.begin(9600);
+  delay(500); // wait for display to boot
+  resetLcd();
+  lcd.write(254); // cursor to beginning of first line
+  lcd.write(128);
+  lcd.write("Ready to Dial   ");
+
+  
   freq[0].begin(10); // Initialize our first tone generator
   freq[1].begin(12); // Initialize our second tone generator
   keypad.setHoldTime(1500); // hold for two seconds to change state to HOLD
@@ -112,11 +141,18 @@ void setup(void){
 /**
  * Main program loop 
  */
+
 void loop(void){ // Here we just get the button, pressed or held, and 2600 switch
   char button = keypad.getKey(); // check for button press
   if (button != NULL) {
     Serial.print("Button: ");
     Serial.println(button);
+    if (presses == 0 || presses >= 32) {
+      resetLcd();
+      presses = 0; // Reset count
+    }
+    presses++;
+    lcd.print(button);
   }
   if(digitalRead(10)==HIGH){ // play 2600Hz if top button pressed
     super(); // supervisory signalling
@@ -124,6 +160,14 @@ void loop(void){ // Here we just get the button, pressed or held, and 2600 switc
   return; // end main()
 }
 
+void resetLcd() {
+   lcd.write(254); // cursor to beginning of first line
+   lcd.write(128);
+   lcd.write("                ");
+   lcd.write("                ");
+   lcd.write(254); // cursor to beginning of first line
+   lcd.write(128);
+}
 /** 
  * Supervisory Button (TOP) 
  */
