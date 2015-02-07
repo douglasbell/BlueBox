@@ -17,8 +17,8 @@
  *
  * 3rd Party Libaries
  *
- * Tone: A customized version included in repository
  * Keypad: http://playground.arduino.cc/Code/Keypad
+ * Tone: https://github.com/douglasbell/BlueBox/tree/master/Tone
  *
  */
  
