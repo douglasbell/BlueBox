@@ -17,24 +17,22 @@
  *
  * 3rd Party Libaries
  *
- * http://playground.arduino.cc/Code/QueueList
- * https://github.com/ivanseidel/ArduinoThread
- * http://playground.arduino.cc/Code/LCDi2c
- *
+ * Tone: A customized version included in repository
+ * Keypad: http://playground.arduino.cc/Code/Keypad
  *
  */
  
 // Attach the serial display's RX line to digital pin 12
 SoftwareSerial lcd(3,13); // pin 3 = RX (unused), pin 13 = TX
 
-// MF 0,1,2,3,4,5,6,7,8,9,kp,st,2400+2600,kp2,st2,ss4 super
+// MF 0,1,2,3,4,5,6,7,8,9,kp,st,2400+2600,kp2,st2,ss4,supervisor
 int bb[16][2] = { 
   {1300,1500},{700,900},{700,1100},      // 0,1,2
   {900,1100},{700,1300},{900,1300},      // 3,4,5
   {1100,1300},{700,1500},{900,1500},     // 6,7,8
   {1100,1500},{1100,1700},{1500,1700},   // 9,kp,st
   {2600,2400},{1300,1700},{900,1700},    // 2400+2600,kp2,st2
-  {2400,2040}                            // ss4 Supervisory
+  {2400,2040}                            // ss4, supervisory
 };
 
 // DTMF Frequencies in Hz
@@ -118,6 +116,13 @@ int presses = 0;
  * Program setup 
  */
 void setup(void){ 
+  freq[0].begin(10); // Initialize our first tone generator
+  freq[1].begin(12); // Initialize our second tone generator
+  keypad.setHoldTime(1500); // hold for two seconds to change state to HOLD
+  pinMode(10, INPUT); // 2600 button
+  // pinMode(13, OUTPUT); // LED for recording
+  keypad.addEventListener(processButton);
+  notificationTone(); // boot successful
   
   // Set up LCD
   lcd.begin(9600);
@@ -127,22 +132,16 @@ void setup(void){
   lcd.write(128);
   lcd.write("Ready to Dial   ");
 
-  
-  freq[0].begin(10); // Initialize our first tone generator
-  freq[1].begin(12); // Initialize our second tone generator
-  keypad.setHoldTime(1500); // hold for two seconds to change state to HOLD
-  pinMode(10, INPUT); // 2600 button
- // pinMode(13, OUTPUT); // LED for recording
-  keypad.addEventListener(procButton);
-  notify(); // boot successful
   Serial.begin(9600);
 }
 
 /**
  * Main program loop 
+ *
+ * Get the button pressed and see if we need to reset or update
+ * the LCD
  */
-
-void loop(void){ // Here we just get the button, pressed or held, and 2600 switch
+void loop(void){ 
   char button = keypad.getKey(); // check for button press
   if (button != NULL) {
     Serial.print("Button: ");
@@ -154,10 +153,11 @@ void loop(void){ // Here we just get the button, pressed or held, and 2600 switc
     presses++;
     lcd.print(button);
   }
-  if(digitalRead(10)==HIGH){ // play 2600Hz if top button pressed
-    super(); // supervisory signalling
+  //if(digitalRead(10)==HIGH){ // play 2600Hz if top button pressed
+  if (button == 'd') {
+    supervisor(); // supervisory signalling
   }
-  return; // end main()
+  return; 
 }
 
 void resetLcd() {
@@ -171,7 +171,7 @@ void resetLcd() {
 /** 
  * Supervisory Button (TOP) 
  */
-void super(void){
+void supervisor(void){
   if(mode==1){ // international seizure of trunk
     mf(12);
     delay(1337); 
@@ -189,7 +189,7 @@ void super(void){
 /** 
  * Process button presses
  */
-void procButton(KeypadEvent b){
+void processButton(KeypadEvent b){
   b -= 48;
   switch (keypad.getState()){
     case RELEASED: // drop right away
@@ -232,20 +232,20 @@ void procButton(KeypadEvent b){
       }
       
       if(b<10&&b>=0||b==-13||b==-6){
-        dial(b); 
+        playSpeedDial(b); 
       }else if(b==51){ // C takes care of recording now
         if(rec){ // we are done recording:
-         // digitalWrite(13, LOW); // turn off LED
+          // digitalWrite(13, LOW); // turn off LED
           rec = 0;
           stored=1; // we have digits stored
-          recNotify();
+          recordNotification();
         }else{ // we start recording
           //digitalWrite(13, HIGH); // light up LED
           rec = 1;
           for(int i=0;i<=23;i++){ // reset array
             store[i] = -1;
           }
-          recNotify();
+          recordNotification();
         } // END recording code
       }else if(b==49){ // ('A' HELD) switching any mode "on" changes to mode, all "off" is domestic
         if(mode==0){ // mf to international
@@ -259,7 +259,7 @@ void procButton(KeypadEvent b){
         }else if(mode==4){ // DTMF to domestic
           mode=0;
         }
-        notifyMode();
+        modeNotification();
         return;
       }       
       break;
@@ -331,7 +331,7 @@ void playStored(void){
 /**
  * Record Notification tone
  */
-void recNotify(void){
+void recordNotification(void){
   if(rec){
     sf(1700,66);
     delay(66);
@@ -349,7 +349,7 @@ void recNotify(void){
 /**
  * Mode notification
  */
-void notifyMode(){
+void modeNotification(){
   int count = 1;
   int dur = 70;
   int frequency = 440;
@@ -379,7 +379,7 @@ void notifyMode(){
 /**
  * Notification Tone
  */
-void notify(void){
+void notificationTone(void){
   Serial.println(mode);
   for(int i=0;i<=2;i++){
     freq[0].play(2600,33);
@@ -418,7 +418,7 @@ void ss4Signal(int signal){
   }
   
   if(signal==-6){ 
-    super();
+    supervisor();
     return; 
   }
   
@@ -434,6 +434,7 @@ void ss4Signal(int signal){
  * Play an multifrequency tone
  */
 void mf(int digit){ 
+  Serial.print("Multifrequency: ");
   if(rec && ((digit>=0&&digit<=9)||digit==-13||digit==-6)){ // Store the digit IFF recording
     for(int i=0;i<=23;i++){ // ONLY record KP,ST,0-9
       if(store[i]==-1){
@@ -562,7 +563,7 @@ void redBox(int coin){
 /**
  * Play speed dials
  */
-void dial(int sd){ // speed dial
+void playSpeedDial(int sd){ // speed dial
   if(rec) { // We are recording
     return; 
   }
