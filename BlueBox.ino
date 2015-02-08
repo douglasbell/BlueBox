@@ -112,6 +112,9 @@ int store[24] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
 // count of button presses for lcd display
 int presses = 0; 
 
+// Do we have a notification on screen
+boolean notify = false;
+
 /**
  * Program setup 
  */
@@ -130,6 +133,7 @@ void setup(void){
   resetLcd();
   lcd.write(254); // cursor to beginning of first line
   lcd.write(128);
+  lcd.write("BlueBox v1.0    ");
   lcd.write("Ready to Dial   ");
 
   Serial.begin(9600);
@@ -146,12 +150,27 @@ void loop(void){
   if (button != NULL) {
     Serial.print("Button: ");
     Serial.println(button);
-    if (presses == 0 || presses >= 32) {
+    if (notify || presses == 0 || presses >= 32) {
       resetLcd();
       presses = 0; // Reset count
     }
     presses++;
-    lcd.print(button);
+    if (isDigit(button)) {
+      lcd.print(button);
+    } else {
+      notify = true;
+      resetLcd();
+      if (button == 'a') {
+        lcd.print("Hold 2 Seconds  ");
+        lcd.print("to Change Modes");
+      } else if (button == 'b') {
+        lcd.print("MF2 Mode        ");
+      } else if (button == 'c') {
+        lcd.print("Open Funcation  "); 
+      } else if (button == 'd') {
+        lcd.print("2600Hz          ");   
+      } // else WTF? 
+    }
   }
   //if(digitalRead(10)==HIGH){ // play 2600Hz if top button pressed
   if (button == 'd') {
@@ -248,16 +267,22 @@ void processButton(KeypadEvent b){
           recordNotification();
         } // END recording code
       }else if(b==49){ // ('A' HELD) switching any mode "on" changes to mode, all "off" is domestic
-        if(mode==0){ // mf to international
+       resetLcd();
+       if(mode==0){ // mf to international
           mode=1;
+           lcd.print("International");   
         }else if(mode==1){ // international to ss4 mode
           mode=2;
+          lcd.print("SS4");
         }else if(mode==2){ // ss4 mode to pulse mode
           mode=3;
+          lcd.print("Pulse");
         }else if(mode==3){ // pulse mode to DTMF
           mode=4;
+          lcd.print("DTMF");
         }else if(mode==4){ // DTMF to domestic
           mode=0;
+          lcd.print("Domestic");
         }
         modeNotification();
         return;
