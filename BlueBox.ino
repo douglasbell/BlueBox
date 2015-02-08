@@ -152,30 +152,31 @@ void loop(void){
     if (notify || presses == 0 || presses >= 32) {
       resetLcd();
       presses = 0; // Reset count
+      notify = false; // R
     }
     presses++;
-    if (isDigit(button)) {
+    if (isDigit(button) || button == '*' || button == '#') {
       lcd.print(button);
     } 
     else {
       notify = true;
       resetLcd();
       if (button == 'a') {
-        lcd.print("Hold 2 Seconds  ");
+        lcd.print("Hold Two Seconds");
         lcd.print("to Change Modes");
       } 
       else if (button == 'b') {
         lcd.print("MF2 Mode        ");
       } 
       else if (button == 'c') {
-        lcd.print("Open Funcation  "); 
+        lcd.print("Hold Two Seconds");
+        lcd.print("to Rec. Autodial"); 
       } 
       else if (button == 'd') {
         lcd.print("2600Hz          ");   
       } // else WTF? 
     }
   }
-  //if(digitalRead(10)==HIGH){ // play 2600Hz if top button pressed
   if (button == 'd') {
     supervisor(); // supervisory signalling
   }
@@ -264,13 +265,11 @@ void processButton(KeypadEvent b){
     }
     else if(b==51){ // C takes care of recording now
       if(rec){ // we are done recording:
-        // digitalWrite(13, LOW); // turn off LED
         rec = 0;
         stored=1; // we have digits stored
         recordNotification();
       }
       else{ // we start recording
-        //digitalWrite(13, HIGH); // light up LED
         rec = 1;
         for(int i=0;i<=23;i++){ // reset array
           store[i] = -1;
@@ -336,10 +335,8 @@ void pulse(int signal){
     }
 
     for(int i=0;i<signal;i++){
-      digitalWrite(13, HIGH); // pulsing LED
       freq[0].play(pulse,66);
       delay(66);
-      digitalWrite(13, LOW);
       delay(34);
     }
     delay(500); // no new digit accepted until after this time
@@ -593,8 +590,7 @@ void sf(int frequency,int duration){
 void redBox(int coin){ 
   int iter;
   int delayMs = 66;
-  int rb[2] = {
-    1700,2200  };
+  int rb[2] = { 1700,2200  };
 
   switch(coin){
   case 49:
