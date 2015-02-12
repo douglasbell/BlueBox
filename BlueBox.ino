@@ -18,9 +18,13 @@
  * 3rd Party Libaries
  *
  * Keypad: http://playground.arduino.cc/Code/Keypad
- * Tone: https://github.com/douglasbell/BlueBox/tree/master/Tone
+ * Tone:   https://github.com/douglasbell/BlueBox/tree/master/Tone
  *
  */
+
+// Number of milliseconds of inaction before dimming the display 
+#define DISPLAY_DIM_IN_MS  10000
+
 // Attach the serial display's RX line to digital pin 12
 SoftwareSerial lcd(3,13); // pin 3 = RX (unused), pin 13 = TX
 
@@ -108,11 +112,15 @@ int mf2 = 0;
 // int store
 int store[24] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
-// count of button presses for lcd display
-int presses = 0; 
+// Count of button presses for clearing lcd display @ 32 chars
+int buttonPresses = 0; 
 
 // Do we have a notification on screen
 boolean notify = false;
+
+long lastButtonPress = 0;
+
+boolean backlight = true;
 
 /**
  * Program setup 
@@ -129,12 +137,12 @@ void setup(void){
   // Set up LCD
   lcd.begin(9600);
   delay(500); // wait for display to boot
-  resetLcd();
+  clearLCD();
   lcd.write(254); // cursor to beginning of first line
   lcd.write(128);
   lcd.write("BlueBox v1.0    ");
   lcd.write("Ready to Dial   ");
-
+  
   Serial.begin(9600);
 }
 
@@ -147,20 +155,28 @@ void setup(void){
 void loop(void){ 
   char button = keypad.getKey(); // check for button press
   if (button != NULL) {
-    Serial.print("Button: ");
-    Serial.println(button);
-    if (notify || presses == 0 || presses >= 32) {
-      resetLcd();
-      presses = 0; // Reset count
-      notify = false; // R
+    
+    if (!backlight) {
+      backlightOn();
+      lcd.write(0xFE);
     }
-    presses++;
+    
+    if (notify || buttonPresses == 0 || buttonPresses >= 32) {
+      clearLCD();
+      buttonPresses = 0; // Reset count
+      notify = false; // Rest notify
+    }
+    
+    buttonPresses++;
+    
+    lastButtonPress = millis();
+    
     if (isDigit(button) || button == '*' || button == '#') {
       lcd.print(button);
-    } 
-    else {
+    }
+    else { // Update display
       notify = true;
-      resetLcd();
+      clearLCD();
       if (button == 'a') {
         lcd.print("Hold Two Seconds");
         lcd.print("to Change Modes");
@@ -176,21 +192,41 @@ void loop(void){
         lcd.print("2600Hz          ");   
       } // else WTF? 
     }
+   
+  } else if (backlight && ((millis() - lastButtonPress) >= DISPLAY_DIM_IN_MS)) {
+      backlightOff();
   }
-  if (button == 'd') {
-    supervisor(); // supervisory signalling
-  }
+  
   return; 
 }
 
-void resetLcd() {
-  lcd.write(254); // cursor to beginning of first line
-  lcd.write(128);
-  lcd.write("                ");
-  lcd.write("                ");
-  lcd.write(254); // cursor to beginning of first line
-  lcd.write(128);
+
+/**
+ * Resets the display, undoing any scroll and removing all text
+ */
+void clearLCD() {
+    lcd.write(0xFE);
+    lcd.write(0x01);
 }
+
+/* 
+ * Turns the backlight on
+ */
+void backlightOn() {
+    backlight = true;
+    lcd.write(0x7C);
+    lcd.write(156);
+}
+
+/*
+ * Turns the backlight off
+ */
+void backlightOff() {
+    backlight = false;
+    lcd.write(0x7C);
+    lcd.write(128);
+}
+
 /** 
  * Supervisory Button (TOP) 
  */
@@ -237,7 +273,10 @@ void processButton(KeypadEvent b){
       mf(b); 
     }
     else if(b==52){ // D
-      if (stored) playStored(); // don't copy function onto stack if not needed 
+       supervisor(); // supervisory signalling
+      if (stored) {
+        playStored(); // don't copy function onto stack if not needed 
+      }
       return;
     }
     else if(mode==1){ // international kp2/st2
@@ -278,7 +317,7 @@ void processButton(KeypadEvent b){
       } // END recording code
     }
     else if(b==49){ // ('A' HELD) switching any mode "on" changes to mode, all "off" is domestic
-      resetLcd();
+      clearLCD();
       if(mode==0){ // mf to international
         mode=1;
         lcd.print("International");   
@@ -634,4 +673,3 @@ void playSpeedDial(int sd){ // speed dial
 
   return;
 }
-
