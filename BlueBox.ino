@@ -118,8 +118,10 @@ int buttonPresses = 0;
 // Do we have a notification on screen
 boolean notify = false;
 
+// How long (in ms) since the last button press
 long lastButtonPress = 0;
 
+// Is the backlight on
 boolean backlight = true;
 
 /**
