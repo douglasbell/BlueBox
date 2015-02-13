@@ -116,7 +116,7 @@ int store[24] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
 int buttonPresses = 0; 
 
 // Do we have a notification on screen
-boolean notify = false;
+boolean notify = true;
 
 // How long (in ms) since the last button press
 long lastButtonPress = 0;
@@ -128,24 +128,35 @@ boolean backlight = true;
  * Program setup 
  */
 void setup(void){ 
+  
+  // Initialize tone generators
   freq[0].begin(10); // Initialize our first tone generator
   freq[1].begin(12); // Initialize our second tone generator
-  keypad.setHoldTime(1500); // hold for two seconds to change state to HOLD
-  pinMode(10, INPUT); // 2600 button
-  // pinMode(13, OUTPUT); // LED for recording
+  
+  // initial keypad
+  keypad.setHoldTime(1500); // hold for 1.5 seconds to change state to HOLD
   keypad.addEventListener(processButton);
   notificationTone(); // boot successful
 
   // Set up LCD
   lcd.begin(9600);
+  
   delay(500); // wait for display to boot
+    
   clearLCD();
+  
   lcd.write(254); // cursor to beginning of first line
   lcd.write(128);
   lcd.write("BlueBox v1.0    ");
   lcd.write("Ready to Dial   ");
   
+  backlightOn();
+  lcd.write(0xFE);
+  lcd.write(254);
+  
   Serial.begin(9600);
+  
+  
 }
 
 /**
@@ -156,6 +167,7 @@ void setup(void){
  */
 void loop(void){ 
   char button = keypad.getKey(); // check for button press
+
   if (button != NULL) {
     
     if (!backlight) {
@@ -163,14 +175,13 @@ void loop(void){
       lcd.write(0xFE);
     }
     
-    if (notify || buttonPresses == 0 || buttonPresses >= 32) {
+    if (notify || buttonPresses >= 32) {
       clearLCD();
       buttonPresses = 0; // Reset count
       notify = false; // Rest notify
     }
     
     buttonPresses++;
-    
     lastButtonPress = millis();
     
     if (isDigit(button) || button == '*' || button == '#') {
