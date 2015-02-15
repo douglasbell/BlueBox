@@ -150,10 +150,6 @@ void setup(void){
   lcd.write("BlueBox v1.0    ");
   lcd.write("Ready to Dial   ");
   
-  backlightOn();
-  lcd.write(0xFE);
-  lcd.write(254);
-  
   Serial.begin(9600);
   
   
@@ -207,7 +203,9 @@ void loop(void){
     }
    
   } else if (backlight && ((millis() - lastButtonPress) >= DISPLAY_DIM_IN_MS)) {
-      backlightOff();
+    // TODO Fix issues with restarting 
+    // backlightOff();
+     // lcd.write(0xFE);
   }
   
   return; 
